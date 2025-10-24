@@ -1,11 +1,12 @@
 import java.util.*;
-
+import java.util.concurrent.*;
 public class WarehouseApp {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
         Scanner sc = new Scanner(System.in);
         Warehouse warehouse = new Warehouse();
         warehouse.addObserver(new AlertService());
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         while(true){
             System.out.println("\n=== WAREHOUSE MENU ===");
@@ -36,7 +37,7 @@ public class WarehouseApp {
                     String id2 = sc.nextLine().trim();
                     System.out.print("Enter Shipment Quantity: ");
                     int addQty = sc.nextInt();
-                    warehouse.receiveShipment(id2, addQty);
+                    executor.submit(()->warehouse.receiveShipment(id2, addQty)).get();
                     break;
 
                     case 3:
@@ -44,7 +45,7 @@ public class WarehouseApp {
                     String id3 = sc.nextLine().trim();
                     System.out.print("Enter Order Quantity: ");
                     int orderQty = sc.nextInt();
-                    warehouse.fulfillOrder(id3, orderQty);
+                    executor.submit(()->warehouse.fulfillOrder(id3, orderQty)).get();
                     break;
                      
                     case 4:
