@@ -1,16 +1,28 @@
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 
 public class Warehouse {
     private Map<String,Product> products = new HashMap<>();
     private List<StockObserver> observers = new ArrayList<>();
+    private final String inventoryFile = "inventory.txt";
 
+    public Warehouse()
+    {
+        loadInventoryFromFile();
+    }
+    // add observer
     public void addObserver(StockObserver observer)
     {
         observers.add(observer);
     }
 
     //add product 
-    public void addProduct(String id,String name, int quantity,int threshold)
+    public synchronized void addProduct(String id,String name, int quantity,int threshold)
     {
         if(products.containsKey(id))
         {
@@ -21,9 +33,10 @@ public class Warehouse {
         Product product = new Product(id, name, quantity, threshold);
         products.put(id, product);
         System.out.println("Adding product with ID -> '" + id + "'");
+        saveInventoryToFile();
     }
     // recieve shipment
-    public void receiveShipment (String id , int quantity) {
+    public synchronized void receiveShipment (String id , int quantity) {
         Product p= products.get(id);
         if(p== null)
         {
@@ -32,9 +45,10 @@ public class Warehouse {
         }
         p.increaseStock(quantity);
         System.out.println("shipment received! New Stock "+ p.getProductQauntity());
+        saveInventoryToFile();
     }
      // order 
-     public void fulfillOrder(String id,int quantity)
+     public synchronized void fulfillOrder(String id,int quantity)
      {
         Product p = products.get(id);
         if(p == null)
@@ -50,6 +64,7 @@ public class Warehouse {
                 notifyObservers(p);
             }
         }
+        saveInventoryToFile();
      }
 
      // notification on low stock
@@ -77,6 +92,46 @@ public class Warehouse {
               "Qty; " +p.getProductQauntity()+ "\n"+
               "Threshold: "+p.getProductThreshold() 
             );
+        }
+      }
+
+      //save inventory to file
+      private void saveInventoryToFile()
+      {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(inventoryFile))) {
+            for (Product p : products.values()) {
+                writer.write(p.toString());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving inventory: " + e.getMessage());
+        }
+      }
+
+      //load inventory from file
+      private void loadInventoryFromFile()
+      {
+        File file = new File(inventoryFile);
+        if (!file.exists()) {
+            return; 
+        }
+        try(BufferedReader reader = new BufferedReader(new FileReader(inventoryFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 4) {
+                    String id = parts[0];
+                    String name = parts[1];
+                    int quantity = Integer.parseInt(parts[2]);
+                    int threshold = Integer.parseInt(parts[3]);
+                    Product product = new Product(id, name, quantity, threshold);
+                    products.put(id, product);
+                }
+            }
+            System.out.println("Inventory loaded from file.");
+        }
+         catch (IOException e) {
+            System.out.println("Error loading inventory: " + e.getMessage());
         }
       }
 }
